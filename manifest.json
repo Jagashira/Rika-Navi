@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Rika Navi",
+  "version": "1.0.0",
+  "description": "理科大の課題管理を自動化します。",
+  "permissions": ["storage", "scripting", "tabs"],
+  "host_permissions": ["https://letus.ed.tus.ac.jp/*"],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://letus.ed.tus.ac.jp/my/"],
+      "js": ["src/content_script.ts"]
+    }
+  ],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/content_script.ts-*.js"],
+      "matches": ["https://letus.ed.tus.ac.jp/*"]
+    }
+  ]
+}

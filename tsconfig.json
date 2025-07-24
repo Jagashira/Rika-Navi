@@ -3,5 +3,10 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    "types": ["chrome"],
+    "lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
 }
