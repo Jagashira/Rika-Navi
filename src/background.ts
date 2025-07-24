@@ -1,58 +1,82 @@
+// src/background.ts
 import type { Kadai, RuntimeMessage } from "./types/types";
 
-const KADAI_PAGE_URL = "https://letus.ed.tus.ac.jp/my/";
+const FETCHER_DOCUMENT_PATH = "fetcher.html";
+let isFetching = false; // 複数回同時に実行されるのを防ぐフラグ
 
-const handleFetchRequest = async () => {
-  console.log("--- スクリプト注入テスト開始 ---");
-  try {
-    const tab = await chrome.tabs.create({
-      url: KADAI_PAGE_URL,
-      active: false,
-    });
-    if (tab && tab.id) {
-      const contentScripts = chrome.runtime.getManifest().content_scripts;
-      if (contentScripts && contentScripts[0]?.js) {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: contentScripts[0].js,
-        });
-        console.log("✅ スクリプト注入完了。応答を待っています...");
-      }
-      setTimeout(() => {
-        if (tab.id) chrome.tabs.remove(tab.id);
-      }, 5000);
-    } else {
-      console.error("❌タブの作成に失敗しました。");
+// データ処理関数
+const handleKadaiDataReceived = (data: Kadai[]) => {
+  chrome.storage.local.set(
+    { kadaiCache: data, lastFetchTime: new Date().toISOString() },
+    () => {
+      chrome.runtime.sendMessage({ type: "KADAI_DATA_UPDATED", data });
     }
-  } catch (e) {
-    console.error("❌ テストのセットアップ中に失敗:", e);
-  }
-};
-
-const handleKadaiFound = (data: Kadai[]) => {
-  console.log(`✅ 成功！ ${data.length}件の課題が見つかりました。`);
-  chrome.storage.local.set({ kadaiCache: data }, () => {
-    chrome.runtime.sendMessage({ type: "KADAI_DATA_UPDATED", data });
-  });
+  );
 };
 
 const handleGetDataRequest = () => {
   chrome.storage.local.get(["kadaiCache"], (result) => {
     const data = result.kadaiCache || [];
-    chrome.runtime.sendMessage({ type: "KADAI_DATA_UPDATED", data });
+    const time = result.lastFetchTime || null;
+    chrome.runtime.sendMessage({ type: "KADAI_DATA_UPDATED", data, time });
   });
 };
 
-chrome.runtime.onMessage.addListener((message: RuntimeMessage) => {
+// Offscreen Documentを使って課題データをバックグラウンドで取得する
+async function fetchKadaiDataInBackground() {
+  if (isFetching) return;
+  isFetching = true;
+
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+    documentUrls: [chrome.runtime.getURL(FETCHER_DOCUMENT_PATH)],
+  });
+  if (existingContexts.length > 0) {
+    isFetching = false;
+    return;
+  }
+  await chrome.offscreen.createDocument({
+    url: FETCHER_DOCUMENT_PATH,
+    reasons: [chrome.offscreen.Reason.DOM_PARSER],
+    justification: "Fetching assignment data",
+  });
+}
+
+chrome.runtime.onMessage.addListener((message: any) => {
   switch (message.type) {
-    case "TEST_FETCH":
-      handleFetchRequest();
+    case "KADAI_FETCH_RESULT":
+      console.log("Background: Received fetch result.");
+      handleKadaiDataReceived(message.data);
+      chrome.offscreen.closeDocument();
+      isFetching = false;
       break;
-    case "KADAI_FOUND":
-      handleKadaiFound(message.data);
+
+    // When the fetcher is ready, tell it to start
+    case "FETCHER_READY":
+      console.log("Background: Fetcher is ready. Sending command.");
+      chrome.runtime.sendMessage({ type: "FETCH_NOW" });
       break;
+
     case "GET_KADAI_DATA":
       handleGetDataRequest();
       break;
+    case "MANUAL_FETCH_REQUEST":
+      console.log("Background: 手動更新リクエストを受信しました。");
+      fetchKadaiDataInBackground();
+      break;
   }
 });
+
+// ユーザーがLETUSドメイン内のページを読み込み完了したら、データを取得する
+chrome.webNavigation.onCompleted.addListener(
+  (details) => {
+    if (
+      details.url.includes("letus.ed.tus.ac.jp") &&
+      !details.url.includes("login") &&
+      details.frameId === 0
+    ) {
+      fetchKadaiDataInBackground();
+    }
+  },
+  { url: [{ hostContains: "letus.ed.tus.ac.jp" }] }
+);

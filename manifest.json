@@ -3,7 +3,14 @@
   "name": "Rika Navi",
   "version": "1.0.0",
   "description": "理科大の課題管理を自動化します。",
-  "permissions": ["storage", "scripting", "tabs"],
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs",
+    "webNavigation",
+    "offscreen",
+    "cookies"
+  ],
   "host_permissions": ["https://letus.ed.tus.ac.jp/*"],
   "background": {
     "service_worker": "src/background.ts",
