@@ -10,9 +10,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // offscreen: resolve(__dirname, "offscreen.html"),
         fetcher: resolve(__dirname, "fetcher.html"),
-        // auth: resolve(__dirname, "auth.html"),
       },
     },
   },
