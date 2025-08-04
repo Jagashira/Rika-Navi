@@ -1,11 +1,11 @@
 import type { User as FirebaseUser } from "firebase/auth";
 
 export interface Kadai {
-  id?: string;
+  id: string;
   title: string;
   deadline: string;
-  // courseName: string;
-  // courseUrl: string;
+  courseName: string;
+  courseUrl: string;
 }
 
 export type ErrorResponse = {
@@ -19,10 +19,10 @@ export type SignInResponse = {
 export type RuntimeMessage =
   // UIからBackground
   | { type: "SIGN_IN" }
-  | { type: "GET_KADAI_DATA" } // chrome.storage.localから課題データを取得
+  | { type: "GET_KADAI_DATA_FROM_CHROME_STORAGE" } // chrome.storage.localから課題データを取得
   | { type: "MANUAL_FETCH_REQUEST" } // 手動でLETUSから課題データを取得
   | {
-      type: "SAVE_KADAI_DATA"; // UIや他の場所から直接課題データを保存
+      type: "SAVE_KADAI_DATA_TO_CHROME_STORAGE"; // UIや他の場所から直接課題データを保存
       data: Kadai[];
       time: string | null;
       error?: ErrorResponse;
@@ -59,4 +59,8 @@ export type RuntimeMessage =
       type: "FETCHER_ERROR";
       error: ErrorResponse;
       target?: "background";
+    }
+  | {
+      type: "CONSOLE_LOG";
+      message: string;
     };

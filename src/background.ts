@@ -44,7 +44,6 @@ const signIn = async (sendResponse: any) => {
 
 //課題データの取得 from chrome.storage.local
 const handleGetDataRequest = () => {
-  console.log("Background: 課題データの取得リクエストを受信しました。");
   chrome.storage.local.get(["kadaiCache", "lastFetchTime"], (result) => {
     const data = result.kadaiCache || [];
     const time = result.lastFetchTime || null;
@@ -154,10 +153,10 @@ async function fetchKadaiDataInBackground() {
       };
       chrome.runtime.onMessage.addListener(messageListener);
 
-      chrome.runtime.sendMessage({
-        type: "FETCH_NOW",
-        target: "fetcher-offscreen",
-      });
+      // chrome.runtime.sendMessage({
+      //   type: "FETCH_NOW",
+      //   target: "fetcher-offscreen",
+      // });
     });
   } catch (error: any) {
     console.error(
@@ -194,14 +193,14 @@ chrome.runtime.onMessage.addListener(
         signIn(sendResponse);
         return true;
 
-      case "GET_KADAI_DATA":
+      case "GET_KADAI_DATA_FROM_CHROME_STORAGE":
         console.log(
-          "Background(addListener): 課題データの取得リクエストを受信しました。"
+          "Background(GET_KADAI_DATA_FROM_CHROME_STORAGE): Chrome Storageから取得"
         );
         handleGetDataRequest();
         break;
 
-      case "SAVE_KADAI_DATA":
+      case "SAVE_KADAI_DATA_TO_CHROME_STORAGE":
         console.log(
           "Background(addListener): 課題データを保存するリクエストを受信しました。",
           message.data?.length || 0,
@@ -213,6 +212,12 @@ chrome.runtime.onMessage.addListener(
       case "MANUAL_FETCH_REQUEST":
         console.log("Background: 手動更新リクエストを受信しました。");
         fetchKadaiDataInBackground();
+        break;
+      case "CONSOLE_LOG":
+        console.log(
+          "Background: コンソールログリクエストを受信:",
+          message.message
+        );
         break;
     }
   }
