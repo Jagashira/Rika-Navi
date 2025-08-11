@@ -7,7 +7,7 @@ async function fetcher() {
   console.log("Fetcher: 課題ページの取得と解析を開始します。");
 
   //get my Kadai from LETUS
-  const kadaiList: Kadai[] = await scrapeKadaiFromDocument(30).catch(
+  const kadaiList: Kadai[] = await scrapeKadaiFromDocument(60).catch(
     (error) => {
       consoleError("Fetcher: 課題ページの取得に失敗:" + error.message);
       return [];
